@@ -35,18 +35,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           work=$(mktemp -d)
           cp -a dist/. "$work/"
           touch "$work/.nojekyll"
           cd "$work"
-          git init
-          git checkout -b gh-pages
+          git init -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "Publish sectional explainer"
-          git -c http.extraheader="AUTHORIZATION: bearer ${GITHUB_TOKEN}" \
-            push --force "https://github.com/${GITHUB_REPOSITORY}.git" HEAD:gh-pages
+          git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:gh-pages
 
       - name: Serve Pages from the gh-pages branch
         env:
