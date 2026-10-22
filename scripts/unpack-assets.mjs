@@ -30,3 +30,9 @@ for (const [source, dest] of pairs) {
   writeFileSync(dest, Buffer.from(encoded, "base64"));
   console.log(`unpacked ${dest}`);
 }
+
+const indexParts = ["parts/index-a.html", "parts/index-b.html"];
+if (!existsSync("index.html") && indexParts.every((part) => existsSync(part))) {
+  writeFileSync("index.html", indexParts.map((part) => readFileSync(part, "utf8")).join(""));
+  console.log("joined index.html");
+}
