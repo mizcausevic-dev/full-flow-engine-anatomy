@@ -31,6 +31,23 @@ for (const [source, dest] of pairs) {
   console.log(`unpacked ${dest}`);
 }
 
+const indexB64 = ["parts/index-b.b64.0", "parts/index-b.b64.1", "parts/index-b.b64.2", "parts/index-b.b64.3"];
+if (!existsSync("parts/index-b.html") && indexB64.every((part) => existsSync(part))) {
+  mkdirSync("parts", { recursive: true });
+  const encoded = indexB64.map((part) => readFileSync(part, "utf8").trim()).join("");
+  writeFileSync("parts/index-b.html", Buffer.from(encoded, "base64"));
+  console.log("decoded parts/index-b.html");
+}
+
+const articleB64 = ["parts/article.b64.0", "parts/article.b64.1"];
+const articleDest = "article/full-flow-staged-combustion-drawn-as-a-machine-Cursor.md";
+if (!existsSync(articleDest) && articleB64.every((part) => existsSync(part))) {
+  mkdirSync("article", { recursive: true });
+  const encoded = articleB64.map((part) => readFileSync(part, "utf8").trim()).join("");
+  writeFileSync(articleDest, Buffer.from(encoded, "base64"));
+  console.log("decoded article");
+}
+
 const indexParts = ["parts/index-a.html", "parts/index-b.html"];
 if (!existsSync("index.html") && indexParts.every((part) => existsSync(part))) {
   writeFileSync("index.html", indexParts.map((part) => readFileSync(part, "utf8")).join(""));
