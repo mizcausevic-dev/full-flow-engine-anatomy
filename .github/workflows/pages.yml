@@ -50,12 +50,28 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh api --method POST -H "Accept: application/vnd.github+json" \
-            "/repos/${{ github.repository }}/pages" \
-            -f "source[branch]=gh-pages" -f "source[path]=/" \
-          || gh api --method PUT -H "Accept: application/vnd.github+json" \
-            "/repos/${{ github.repository }}/pages" \
-            -f "source[branch]=gh-pages" -f "source[path]=/"
+          payload='{"build_type":"legacy","source":{"branch":"gh-pages","path":"/"}}'
+          ok=0
+          last=""
+          for i in 1 2 3 4 5 6; do
+            if last=$(gh api --method POST -H "Accept: application/vnd.github+json" \
+              "/repos/${{ github.repository }}/pages" --input - <<<"$payload" 2>&1); then
+              ok=1
+              break
+            fi
+            if last=$(gh api --method PUT -H "Accept: application/vnd.github+json" \
+              "/repos/${{ github.repository }}/pages" --input - <<<"$payload" 2>&1); then
+              ok=1
+              break
+            fi
+            echo "Pages attempt ${i} failed."
+            echo "$last"
+            sleep 5
+          done
+          if [ "$ok" != 1 ]; then
+            echo "::error title=Pages API::${last}"
+            exit 1
+          fi
 
       - name: Set repository topics and description
         env:
