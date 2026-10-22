@@ -20,11 +20,10 @@ const pairs = [
 for (const [source, dest] of pairs) {
   const sources = Array.isArray(source) ? source : [source];
   if (existsSync(dest)) continue;
-  for (const part of sources) {
-    if (!existsSync(part)) {
-      console.error(`Missing ${part}. Cannot unpack ${dest}.`);
-      process.exit(1);
-    }
+  const missing = sources.filter((part) => !existsSync(part));
+  if (missing.length) {
+    console.warn(`Skipping ${dest}. Missing ${missing.join(", ")}.`);
+    continue;
   }
   mkdirSync(dirname(dest), { recursive: true });
   const encoded = sources.map((part) => readFileSync(part, "utf8").trim()).join("");

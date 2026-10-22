@@ -24,11 +24,10 @@ jobs:
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: 22
-          cache: npm
 
       - name: Install, verify, build
         run: |
-          npm ci
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
           npm run verify
           npm run build
 
