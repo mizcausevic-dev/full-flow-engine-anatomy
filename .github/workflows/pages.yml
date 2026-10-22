@@ -1,0 +1,82 @@
+name: Publish GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install, verify, build
+        run: |
+          npm ci
+          npm run verify
+          npm run build
+
+      - name: Publish the gh-pages branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          work=$(mktemp -d)
+          cp -a dist/. "$work/"
+          touch "$work/.nojekyll"
+          cd "$work"
+          git init
+          git checkout -b gh-pages
+          git add -A
+          git commit -m "Publish sectional explainer"
+          git -c http.extraheader="AUTHORIZATION: bearer ${GITHUB_TOKEN}" \
+            push --force "https://github.com/${GITHUB_REPOSITORY}.git" HEAD:gh-pages
+
+      - name: Serve Pages from the gh-pages branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api --method POST -H "Accept: application/vnd.github+json" \
+            "/repos/${{ github.repository }}/pages" \
+            -f "source[branch]=gh-pages" -f "source[path]=/" \
+          || gh api --method PUT -H "Accept: application/vnd.github+json" \
+            "/repos/${{ github.repository }}/pages" \
+            -f "source[branch]=gh-pages" -f "source[path]=/"
+
+      - name: Set repository topics and description
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api --method PUT -H "Accept: application/vnd.github+json" \
+            "/repos/${{ github.repository }}/topics" \
+            -f 'names[]=aerospace' \
+            -f 'names[]=rocket-propulsion' \
+            -f 'names[]=staged-combustion' \
+            -f 'names[]=full-flow' \
+            -f 'names[]=raptor' \
+            -f 'names[]=technical-visualization' \
+            -f 'names[]=methalox' \
+            -f 'names[]=engineering-education' \
+            -f 'names[]=regenerative-cooling' \
+            -f 'names[]=de-laval' || echo "Topic update skipped."
+          gh api --method PATCH -H "Accept: application/vnd.github+json" \
+            "/repos/${{ github.repository }}" \
+            -f description='Frame-accurate sectional anatomy of a Raptor-inspired full-flow staged combustion cycle, with no invented pressures or shaft speeds.' \
+            -f homepage='https://mizcausevic-dev.github.io/full-flow-engine-anatomy/' || echo "Description update skipped."
