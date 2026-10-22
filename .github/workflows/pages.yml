@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   pages: write
+  id-token: write
 
 concurrency:
   group: pages
@@ -16,6 +17,9 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -46,34 +50,20 @@ jobs:
           git commit -m "Publish sectional explainer"
           git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:gh-pages
 
-      - name: Serve Pages from the gh-pages branch
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          payload='{"build_type":"legacy","source":{"branch":"gh-pages","path":"/"}}'
-          ok=0
-          last=""
-          for i in 1 2 3 4 5 6; do
-            if last=$(gh api --method POST -H "Accept: application/vnd.github+json" \
-              "/repos/${{ github.repository }}/pages" --input - <<<"$payload" 2>&1); then
-              ok=1
-              break
-            fi
-            if last=$(gh api --method PUT -H "Accept: application/vnd.github+json" \
-              "/repos/${{ github.repository }}/pages" --input - <<<"$payload" 2>&1); then
-              ok=1
-              break
-            fi
-            echo "Pages attempt ${i} failed."
-            echo "$last"
-            sleep 5
-          done
-          if [ "$ok" != 1 ]; then
-            echo "::error title=Pages API::${last}"
-            exit 1
-          fi
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d
+
+      - name: Upload the Pages artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9
+        with:
+          path: dist
+
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346
 
       - name: Set repository topics and description
+        if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
